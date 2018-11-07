@@ -14,7 +14,9 @@ pipeline {
             }
         }
         stage('infra-tests') {
-            
+            steps {
+                sh 'echo "This is from testing stage"'
+            } 
         }
     }
 }
