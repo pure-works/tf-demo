@@ -1,6 +1,6 @@
 #!/bin/bash
 
 IFS=','
-arr = ($option)
+read -a -r options <<< "${option}"
 
 echo $arr
