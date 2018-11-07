@@ -1,3 +1,5 @@
 #!/bin/bash
 
-echo $option
+arr = ($option)
+
+echo $arr
