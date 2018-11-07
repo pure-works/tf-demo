@@ -1,6 +1,9 @@
 #!/bin/bash
 
 IFS=':'
-read -a options <<< "${option}"
+read -a layers <<< "${LAYERS}"
 
-echo ${options[1]}
+for env in "${layers[@]}"
+do
+    echo "Executing ${env}"
+done
