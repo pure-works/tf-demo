@@ -1,6 +1,6 @@
 #!/bin/bash
 
 IFS=':'
-read -a options <<< ${option}
+read -a options <<< "${option}"
 
-echo "${options[0]}"
+echo ${options[0]}
