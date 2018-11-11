@@ -1,0 +1,107 @@
+#!/bin/bash
+
+source ./util/common-functions.sh
+source ./util/core-functions.sh
+
+IFS=':'
+read -a layers <<< "${LAYERS}"
+
+for layer in "${layers[@]}"
+do
+    echo "Executing ${layer}..."
+    run_generic_layer ${layer} ${OTHER_PARAMETERS}
+	if [[ "$?" == 0 ]]; then
+		echo "${layer} execution successful!"
+	fi
+done
+
+function run_generic_layer() {
+	# Main
+	LAYER_NAME=$1
+	shift 1
+
+	# We want to know when this script started and ended.
+	SCRIPT_STARTED=$(date +%s)
+
+	# Parse the arguments that are left.
+	parse_arguments $@
+
+	configure_terraform_logging
+
+	set_terraform_variables
+
+	# Depending on the layer that is being processed, there may be custom parameters required.
+	EXTRA_PARAMETERS=""
+	SCRIPT_EXIT_CODE=0
+
+	# Check to see if there were variable overrides.
+	if [ "$VAR_OVERRIDE" != "" ]; then
+		LAYER_VAR_OVERRIDE="--var-override $VAR_OVERRIDE"
+	fi
+
+	# Provide the Environment
+	if [ "$ENV" != "" ]; then
+		ENVIRON="--env $ENV"
+	fi
+
+	# Check to see if anything needed to be tainted.
+	if [ "$TAINT" != "" ]; then
+		LAYER_TAINT="--taint $TAINT"
+	fi
+	
+
+	# Check to see if anything needed to be removed from state.
+	if [ "$RM_STATE" != "" ]; then
+		LAYER_RM_STATE="--rm-state $RM_STATE"
+	fi
+
+	# Is this for DR?
+	DISAS_RECOVERY=""
+
+	if [[ "$DR" == "true" ]]; then
+		DISAS_RECOVERY="--DR"
+		TFVARS = "${ENV}-DR" 
+	else
+		TFVARS = "${ENV}-Primary"
+	fi
+
+	# Is this a dry run?
+	LAYER_DRYRUN=""
+
+	if [[ "$DRYRUN" == "true" ]]; then
+		LAYER_DRYRUN="--dryrun"
+	fi
+		
+	# Make state file backups?
+	LAYER_BACK_UP_STATE_FILE=""
+		
+	if [[ "$BACK_UP_STATE_FILE" == "true" ]]; then
+		LAYER_BACK_UP_STATE_FILE="--back-up-state-file"
+	fi
+
+	# Change directory to the layer's directory, and run the layer.
+	pushd "$LAYER_NAME" > /dev/null
+		
+	set +e
+		
+	../layer-run.sh $LAYER_NAME "--${MODE}" --vars "$TFVARS" $ENVIRON $DISAS_RECOVERY \
+		$LAYER_BACK_UP_STATE_FILE $LAYER_RM_STATE $LAYER_TAINT $LAYER_DRYRUN \
+		$LAYER_VAR_OVERRIDE $EXTRA_PARAMETERS
+			
+	SCRIPT_EXIT_CODE=$?
+		
+	set -e
+		
+	# If we are doing a true terminate and the terminate finished cleanly, then do some cleanup.
+	if [[ "${MODE}" == "terminate" && "${DRYRUN}" == "false" && "$SCRIPT_EXIT_CODE" == "0" ]]; then
+		clean_up_terraform_state_for_layer "$LAYER_NAME"
+	fi
+
+	popd > /dev/null
+
+	# Write out the result of this layer to our log file.
+	SCRIPT_ENDED=$(date +%s)
+
+	# Return the exit code back to the parent, so they'll know if we succeeded or not.
+	exit $SCRIPT_EXIT_CODE
+}
