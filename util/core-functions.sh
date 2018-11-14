@@ -44,7 +44,7 @@ function parse_arguments() {
 			--terraform-path ) TERRAFORM_PATH=$2; shift 2;;
 			--dryrun ) DRYRUN=true; shift ;;
 			--DR ) ENV_TYPE="DR"; shift ;;
-			--vars ) TFVARS="$2"; shift 2;
+			--vars ) TFVARS="$2"; shift 2;;
 			--skip-state-folder-deletion ) SKIP_STATE_FOLDER_DELETION=true; shift ;;
 			--back-up-state-file ) BACK_UP_STATE_FILE=true; shift ;;
 			--help ) usage; exit; shift ;;
