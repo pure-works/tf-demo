@@ -10,7 +10,7 @@ pipeline {
         }
         stage('terraform plan & apply') {
             steps {
-                sh './dpp-tf.sh'
+                sh './tfmain'
             }
         }
         stage('infra-tests') {
